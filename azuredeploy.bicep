@@ -105,33 +105,33 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   }
 }
 
-resource SQLServer 'Microsoft.Sql/servers@2022-11-01-preview' = {
-  name: SQLServerName
-  location: location
-  properties: {
-    administratorLogin: SQLAdministratorLogin
-    administratorLoginPassword: SQLAdministratorLoginPassword
-  }
-}
+// resource SQLServer 'Microsoft.Sql/servers@2022-11-01-preview' = {
+//   name: SQLServerName
+//   location: location
+//   properties: {
+//     administratorLogin: SQLAdministratorLogin
+//     administratorLoginPassword: SQLAdministratorLoginPassword
+//   }
+// }
 
-resource SQLDatabase 'Microsoft.Sql/servers/databases@2022-11-01-preview' = {
-  parent: SQLServer
-  name: SQLDBName
-  location: location
-  sku: {
-    name: 'Standard'
-    tier: 'Standard'
-  }
-}
+// resource SQLDatabase 'Microsoft.Sql/servers/databases@2022-11-01-preview' = {
+//   parent: SQLServer
+//   name: SQLDBName
+//   location: location
+//   sku: {
+//     name: 'Standard'
+//     tier: 'Standard'
+//   }
+// }
 
-resource SQLFirewallRules 'Microsoft.Sql/servers/firewallRules@2022-11-01-preview' = {
-  parent: SQLServer
-  name: 'AllowAllAzureIPs'
-  properties: {
-    startIpAddress: '0.0.0.0'
-    endIpAddress: '255.255.255.255'
-  }
-}
+// resource SQLFirewallRules 'Microsoft.Sql/servers/firewallRules@2022-11-01-preview' = {
+//   parent: SQLServer
+//   name: 'AllowAllAzureIPs'
+//   properties: {
+//     startIpAddress: '0.0.0.0'
+//     endIpAddress: '255.255.255.255'
+//   }
+// }
 
 resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
   name: cosmosDBAccountName
@@ -210,6 +210,10 @@ resource blobStorageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   sku: {
     name: 'Standard_LRS'
   }
+  properties:{
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: true
+  }
 }
 
 resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
@@ -221,3 +225,45 @@ resource blobStorageContainer 'Microsoft.Storage/storageAccounts/blobServices/co
   parent: blobServices
   name: containerName
 }]
+
+
+
+//################################### OUTPUT Variables #########################################
+
+//SAS to download all blobs in account
+var allBlobDownloadSAS = listAccountSAS(blobStorageAccount.name, '2023-01-01', {
+  keyToSign: 'key1'
+  signedProtocol: 'https,http'
+  signedResourceTypes: 'sco'
+  signedPermission: 'rwdlacup'
+  signedServices: 'bfqt'
+  signedExpiry: '2025-01-01T00:00:00Z'
+ // signedip: '4.59.199.38'
+
+}).accountSasToken
+
+//Get the first access key
+var blobStorageAccountAccessKey = blobStorageAccount.listKeys().keys[0].value
+var azureSearchKey = azureSearch.listAdminKeys().primaryKey
+var cognitiveServiceKey = cognitiveService.listKeys().key1
+var cosmosDBConnectionString = cosmosDBAccount.listConnectionStrings().connectionStrings[0].connectionString
+
+
+
+//################################### OUTPUT VALUES TO CONSOLE #########################################
+
+output AZURE_SEARCH_NAME string = 'https://${azureSearchName}.search.windows.net'
+output AZURE_SEARCH_KEY string = azureSearchKey
+//this feels nasty but can't find a different way to get the connection string
+output BLOB_CONNECTION_STRING string = 'DefaultEndpointsProtocol=https;AccountName=${blobStorageAccount.name};AccountKey=${blobStorageAccountAccessKey};EndpointSuffix=core.windows.net'
+output BLOB_SAS_TOKEN string =  '?${allBlobDownloadSAS}'
+output COG_SERVICES_NAME string = cognitiveServiceName
+output COG_SERVICES_KEY string = cognitiveServiceKey
+output SQL_SERVER_NAME string = SQLServerName
+output SQL_SERVER_DATABASE string = SQLDBName
+output SQL_SERVER_USERNAME string = SQLAdministratorLogin
+output SQL_SERVER_PASSWORD string = SQLAdministratorLoginPassword
+output AZURE_COSMOSDB_ENDPOINT string = cosmosDBAccount.properties.documentEndpoint // " https://cosmosdb-account-ngdmjylk4biva.documents.azure.com:443/"
+output AZURE_COSMOSDB_NAME string = cosmosDBAccountName
+output AZURE_COSMOSDB_CONTAINER_NAME string = cosmosDBContainerName
+output AZURE_COMOSDB_CONNECTION_STRING string = cosmosDBConnectionString

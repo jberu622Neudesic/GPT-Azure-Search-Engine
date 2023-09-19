@@ -1,6 +1,3 @@
-//Sample hello world
-param yourName string
-var hello = 'Hello World! - Hi'
 
 
 
@@ -83,6 +80,19 @@ param location string = resourceGroup().location
 
 
 
+resource blobStorageAcct 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
+  name: blobStorageAccountName
+  scope: resourceGroup()
+}
 
-output helloWorld string = '${hello} ${yourName}'
-output azureSearchName string = '${azureSearchName}'
+
+output blobStorageAccConn object = blobStorageAcct
+
+//SAS to download all blobs in account
+output allBlobDownloadSAS string = listAccountSAS(blobStorageAccountName, '2023-01-01', {
+  signedProtocol: 'https'
+  signedResourceTypes: 'sco'
+  signedPermission: 'rl'
+  signedServices: 'b'
+  signedExpiry: '2025-01-01T00:00:00Z'
+}).accountSasToken
