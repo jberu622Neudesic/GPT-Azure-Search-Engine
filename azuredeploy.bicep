@@ -105,33 +105,34 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   }
 }
 
-// resource SQLServer 'Microsoft.Sql/servers@2022-11-01-preview' = {
-//   name: SQLServerName
-//   location: location
-//   properties: {
-//     administratorLogin: SQLAdministratorLogin
-//     administratorLoginPassword: SQLAdministratorLoginPassword
-//   }
-// }
 
-// resource SQLDatabase 'Microsoft.Sql/servers/databases@2022-11-01-preview' = {
-//   parent: SQLServer
-//   name: SQLDBName
-//   location: location
-//   sku: {
-//     name: 'Standard'
-//     tier: 'Standard'
-//   }
-// }
+resource SQLServer 'Microsoft.Sql/servers@2022-11-01-preview' = {
+  name: SQLServerName
+  location: location
+  properties: {
+    administratorLogin: SQLAdministratorLogin
+    administratorLoginPassword: SQLAdministratorLoginPassword
+  }
+}
 
-// resource SQLFirewallRules 'Microsoft.Sql/servers/firewallRules@2022-11-01-preview' = {
-//   parent: SQLServer
-//   name: 'AllowAllAzureIPs'
-//   properties: {
-//     startIpAddress: '0.0.0.0'
-//     endIpAddress: '255.255.255.255'
-//   }
-// }
+resource SQLDatabase 'Microsoft.Sql/servers/databases@2022-11-01-preview' = {
+  parent: SQLServer
+  name: SQLDBName
+  location: location
+  sku: {
+    name: 'Standard'
+    tier: 'Standard'
+  }
+}
+
+resource SQLFirewallRules 'Microsoft.Sql/servers/firewallRules@2022-11-01-preview' = {
+  parent: SQLServer
+  name: 'AllowAllAzureIPs'
+  properties: {
+    startIpAddress: '0.0.0.0'
+    endIpAddress: '255.255.255.255'
+  }
+}
 
 resource cosmosDBAccount 'Microsoft.DocumentDB/databaseAccounts@2023-04-15' = {
   name: cosmosDBAccountName
@@ -221,7 +222,7 @@ resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01
   name: 'default'
 }
 
-resource blobStorageContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = [for containerName in ['books', 'cord19', 'mixed'] : {
+resource blobStorageContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = [for containerName in ['arxivcs','books', 'cord19', 'mixed'] : {
   parent: blobServices
   name: containerName
 }]
@@ -252,11 +253,12 @@ var cosmosDBConnectionString = cosmosDBAccount.listConnectionStrings().connectio
 
 //################################### OUTPUT VALUES TO CONSOLE #########################################
 
-output AZURE_SEARCH_NAME string = 'https://${azureSearchName}.search.windows.net'
+output AZURE_SEARCH_ENDPOINT string = 'https://${azureSearchName}.search.windows.net'
 output AZURE_SEARCH_KEY string = azureSearchKey
 //this feels nasty but can't find a different way to get the connection string
 output BLOB_CONNECTION_STRING string = 'DefaultEndpointsProtocol=https;AccountName=${blobStorageAccount.name};AccountKey=${blobStorageAccountAccessKey};EndpointSuffix=core.windows.net'
 output BLOB_SAS_TOKEN string =  '?${allBlobDownloadSAS}'
+output BLOBServiceEndpoint string = blobStorageAccountName
 output COG_SERVICES_NAME string = cognitiveServiceName
 output COG_SERVICES_KEY string = cognitiveServiceKey
 output SQL_SERVER_NAME string = SQLServerName
