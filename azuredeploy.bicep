@@ -105,6 +105,7 @@ resource cognitiveService 'Microsoft.CognitiveServices/accounts@2023-05-01' = {
   }
 }
 
+
 resource SQLServer 'Microsoft.Sql/servers@2022-11-01-preview' = {
   name: SQLServerName
   location: location
@@ -210,6 +211,10 @@ resource blobStorageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   sku: {
     name: 'Standard_LRS'
   }
+  properties:{
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: true
+  }
 }
 
 resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01' = {
@@ -217,7 +222,50 @@ resource blobServices 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01
   name: 'default'
 }
 
-resource blobStorageContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = [for containerName in ['books', 'cord19', 'mixed'] : {
+resource blobStorageContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-01-01' = [for containerName in ['arxivcs','books', 'cord19', 'mixed'] : {
   parent: blobServices
   name: containerName
 }]
+
+
+
+//################################### OUTPUT Variables #########################################
+
+//SAS to download all blobs in account
+var allBlobDownloadSAS = listAccountSAS(blobStorageAccount.name, '2023-01-01', {
+  keyToSign: 'key1'
+  signedProtocol: 'https,http'
+  signedResourceTypes: 'sco'
+  signedPermission: 'rwdlacup'
+  signedServices: 'bfqt'
+  signedExpiry: '2025-01-01T00:00:00Z'
+ // signedip: '4.59.199.38'
+
+}).accountSasToken
+
+//Get the first access key
+var blobStorageAccountAccessKey = blobStorageAccount.listKeys().keys[0].value
+var azureSearchKey = azureSearch.listAdminKeys().primaryKey
+var cognitiveServiceKey = cognitiveService.listKeys().key1
+var cosmosDBConnectionString = cosmosDBAccount.listConnectionStrings().connectionStrings[0].connectionString
+
+
+
+//################################### OUTPUT VALUES TO CONSOLE #########################################
+
+output AZURE_SEARCH_ENDPOINT string = 'https://${azureSearchName}.search.windows.net'
+output AZURE_SEARCH_KEY string = azureSearchKey
+//this feels nasty but can't find a different way to get the connection string
+output BLOB_CONNECTION_STRING string = 'DefaultEndpointsProtocol=https;AccountName=${blobStorageAccount.name};AccountKey=${blobStorageAccountAccessKey};EndpointSuffix=core.windows.net'
+output BLOB_SAS_TOKEN string =  '?${allBlobDownloadSAS}'
+output BLOBServiceEndpoint string = blobStorageAccountName
+output COG_SERVICES_NAME string = cognitiveServiceName
+output COG_SERVICES_KEY string = cognitiveServiceKey
+output SQL_SERVER_NAME string = SQLServerName
+output SQL_SERVER_DATABASE string = SQLDBName
+output SQL_SERVER_USERNAME string = SQLAdministratorLogin
+output SQL_SERVER_PASSWORD string = SQLAdministratorLoginPassword
+output AZURE_COSMOSDB_ENDPOINT string = cosmosDBAccount.properties.documentEndpoint // " https://cosmosdb-account-ngdmjylk4biva.documents.azure.com:443/"
+output AZURE_COSMOSDB_NAME string = cosmosDBAccountName
+output AZURE_COSMOSDB_CONTAINER_NAME string = cosmosDBContainerName
+output AZURE_COMOSDB_CONNECTION_STRING string = cosmosDBConnectionString
